@@ -1,0 +1,16 @@
+module alu_shift (
+    input alufn[4],
+    input a[16],
+    input b[16],
+    output s[16]
+  ) {
+
+  always {
+    case(alufn){
+      4b0000: s = a << b[5:0];            // SHL
+      4b0001: s = a >> b[5:0];            // SHR
+      4b0011: s = $signed(a) >>> b[5:0];  // SRA
+      default: s = 0;
+      }
+  }
+}

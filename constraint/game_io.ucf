@@ -1,0 +1,10 @@
+NET "matrix_col<0>"  LOC = P33 | IOSTANDARD = LVTTL;
+NET "matrix_col<1>"  LOC = P35 | IOSTANDARD = LVTTL;
+NET "matrix_col<2>"  LOC = P41 | IOSTANDARD = LVTTL;
+NET "matrix_col<3>"  LOC = P51 | IOSTANDARD = LVTTL;
+
+NET "matrix_row_sel<0>"  LOC = P34 | IOSTANDARD = LVTTL;
+NET "matrix_row_sel<1>"  LOC = P32 | IOSTANDARD = LVTTL;
+
+NET "matrix_rgb_sel<0>"  LOC = P50 | IOSTANDARD = LVTTL;
+NET "matrix_rgb_sel<1>"  LOC = P40 | IOSTANDARD = LVTTL;

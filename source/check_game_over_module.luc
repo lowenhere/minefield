@@ -1,0 +1,25 @@
+module check_game_over_module (
+    input player_pos[4][4],
+    input end_pos[4][4],
+    input mine_pos[4][4],
+    output game_over,
+    output win_loss
+  ) {
+  
+  sig zeroes[4][4];
+  
+  always {
+    game_over = 0;
+    win_loss = 0;
+    zeroes = 4x{{4b0000}};
+    
+    if ((player_pos & end_pos) != zeroes){
+      game_over = 1;
+      win_loss = 1;
+      }
+    else if ((player_pos & mine_pos) != zeroes) {
+      game_over = 1;
+      win_loss = 0;
+      }
+  }
+}

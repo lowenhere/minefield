@@ -1,0 +1,142 @@
+module display_module (
+    input clk,  // clock
+    input rst,  // reset
+    input player_pos[4][4],
+    input end_pos[4][4],
+    input game_over,
+    input win_loss, // loss: 0, win: 1
+    output matrix_col[4],
+    output matrix_row_sel[2],
+    output matrix_rgb_sel[2]
+) 
+{
+  .clk(clk) {
+    .rst(rst) {
+      fsm state = 
+        { R_ROW_0, R_ROW_1, R_ROW_2, R_ROW_3,
+          G_ROW_0, G_ROW_1, G_ROW_2, G_ROW_3,
+          B_ROW_0, B_ROW_1, B_ROW_2, B_ROW_3};
+      
+      counter blink_clock(#SIZE(1), #DIV(26));
+      counter cycle_clock(#SIZE(1), #DIV(10));
+    }
+    
+    edge_detector cycle_clock_edge;
+  }
+  
+  always{
+    matrix_col = 4b0000;
+    matrix_rgb_sel = 2b11;
+    matrix_row_sel = 2b00;
+    
+    cycle_clock_edge.in = cycle_clock.value;
+    
+    case (state.q) {
+      state.R_ROW_0:
+        matrix_row_sel = 2b00;
+        matrix_rgb_sel = 2b00;        
+        if (game_over && !win_loss && blink_clock.value)
+          matrix_col = 4b1111;
+        if (cycle_clock_edge.out)
+          state.d = state.R_ROW_1;
+      
+      state.R_ROW_1:
+        matrix_row_sel = 2b01;
+        matrix_rgb_sel = 2b00;        
+        if (game_over && !win_loss && blink_clock.value)
+          matrix_col = 4b1111;
+        if (cycle_clock_edge.out)
+          state.d = state.R_ROW_2;
+          
+      state.R_ROW_2:
+        matrix_row_sel = 2b10;
+        matrix_rgb_sel = 2b00;        
+        if (game_over && !win_loss && blink_clock.value)
+          matrix_col = 4b1111;
+        if (cycle_clock_edge.out)
+          state.d = state.R_ROW_3;
+          
+      state.R_ROW_3:
+        matrix_row_sel = 2b11;
+        matrix_rgb_sel = 2b00;        
+        if (game_over && !win_loss && blink_clock.value)
+          matrix_col = 4b1111;
+        if (cycle_clock_edge.out)
+          state.d = state.G_ROW_0;
+          
+      state.G_ROW_0:
+        matrix_row_sel = 2b00;
+        matrix_rgb_sel = 2b01;
+        if (!game_over)
+          matrix_col = end_pos[0];
+        if (game_over && win_loss && blink_clock.value)
+          matrix_col = 4b1111;
+        if (cycle_clock_edge.out)
+          state.d = state.G_ROW_1;
+          
+      state.G_ROW_1:
+        matrix_row_sel = 2b01;
+        matrix_rgb_sel = 2b01;
+        if (!game_over)
+          matrix_col = end_pos[1];
+        if (game_over && win_loss && blink_clock.value)
+          matrix_col = 4b1111;
+        if (cycle_clock_edge.out)
+          state.d = state.G_ROW_2;
+          
+      state.G_ROW_2:
+        matrix_row_sel = 2b10;
+        matrix_rgb_sel = 2b01;
+        if (!game_over)
+          matrix_col = end_pos[2];
+        if (game_over && win_loss && blink_clock.value)
+          matrix_col = 4b1111;
+        if (cycle_clock_edge.out)
+          state.d = state.G_ROW_3;
+          
+      state.G_ROW_3:
+        matrix_row_sel = 2b11;
+        matrix_rgb_sel = 2b01;
+        if (!game_over)
+          matrix_col = end_pos[3];
+        if (game_over && win_loss && blink_clock.value)
+          matrix_col = 4b1111;
+        if (cycle_clock_edge.out)
+          state.d = state.B_ROW_0;
+        
+      state.B_ROW_0:
+        matrix_row_sel = 2b00;
+        matrix_rgb_sel = 2b10;
+        if (!game_over)
+          matrix_col = player_pos[0];
+        if (cycle_clock_edge.out)
+          state.d = state.B_ROW_1;
+          
+      state.B_ROW_1:
+        matrix_row_sel = 2b01;
+        matrix_rgb_sel = 2b10;
+        if (!game_over)
+          matrix_col = player_pos[1];
+        if (cycle_clock_edge.out)
+          state.d = state.B_ROW_2;
+      
+      state.B_ROW_2:
+        matrix_row_sel = 2b10;
+        matrix_rgb_sel = 2b10;
+        if (!game_over)
+          matrix_col = player_pos[2];
+        if (cycle_clock_edge.out)
+          state.d = state.B_ROW_3;
+          
+      state.B_ROW_3:
+        matrix_row_sel = 2b11;
+        matrix_rgb_sel = 2b10;
+        if (!game_over)
+          matrix_col = player_pos[3];
+        if (cycle_clock_edge.out)
+          state.d = state.R_ROW_0;
+             
+      }
+    
+    }
+}

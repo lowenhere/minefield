@@ -1,0 +1,104 @@
+module move_player_module (
+    input clk,  // clock
+    input rst,  // reset  
+    
+    input player_pos[4][4],
+    input move_direction[2], //0:top 1:right 2:bottom 3:left
+    output new_player_pos[4][4],
+    
+    input move_player,
+    output done,
+    
+    output alu_a[16],
+    output alu_b[16],
+    output alufn[6],
+    input alu_out[16],
+    output move_player_sel
+    
+  ) 
+  {
+  
+  .clk(clk){
+    .rst(rst){
+      fsm state = { INIT, SHIFT, DONE };
+      dff player_pos_intermediate[16];
+      dff move_direction_dff[2];
+      counter slow_clk(#SIZE(1), #DIV(5));
+    }
+    edge_detector slow_clk_ed(#RISE(1), #FALL(0));
+  }
+  
+  
+  always {
+    slow_clk_ed.in = slow_clk.value;
+    
+    new_player_pos = player_pos;
+    done = 0;
+    alu_a = 16b0;
+    alu_b = 16b0;
+    alufn = 6b0;
+    move_player_sel = 0;
+    
+    
+    case(state.q){
+      state.INIT:
+        if (move_player){
+          player_pos_intermediate.d = c{player_pos[3], player_pos[2], player_pos[1], player_pos[0]};
+          move_direction_dff.d = move_direction;
+          state.d = state.SHIFT;
+          }  
+        
+      state.SHIFT:
+        alu_a = player_pos_intermediate.q;
+        move_player_sel = 1;
+        case (move_direction_dff.q){
+          0: // up
+            alu_b = 16b0000000000000100;
+            alufn = 6b100000;
+            player_pos_intermediate.d = alu_out;
+          1: // right
+            alu_b = 16b0000000000000001;
+            alufn = 6b100001;
+            
+            if (player_pos_intermediate.q[12] || player_pos_intermediate.q[8] || 
+                player_pos_intermediate.q[4] || player_pos_intermediate.q[0] ) 
+              {
+                player_pos_intermediate.d = player_pos_intermediate.q;
+              }
+            else {
+                player_pos_intermediate.d = alu_out;
+              }
+            
+          2: // down
+            alu_b = 16b0000000000000100;
+            alufn = 6b100001;
+            player_pos_intermediate.d = alu_out;
+            
+          3: // left
+            alu_b = 16b0000000000000001;
+            alufn = 6b100000;
+            
+            if (player_pos_intermediate.q[15] || player_pos_intermediate.q[11] || 
+                player_pos_intermediate.q[7] || player_pos_intermediate.q[3] ) 
+              {
+                player_pos_intermediate.d = player_pos_intermediate.q;
+              }
+            else {
+                player_pos_intermediate.d = alu_out;
+              }
+        }
+        state.d = state.DONE;
+                
+      state.DONE:
+        if (player_pos_intermediate.q != 16b0 )
+          new_player_pos = { player_pos_intermediate.q[15:12], player_pos_intermediate.q[11:8], player_pos_intermediate.q[7:4], player_pos_intermediate.q[3:0] };
+        else
+          new_player_pos = player_pos;
+        
+        done = 1;
+        state.d = state.INIT;
+     
+    }  
+    
+  }
+}

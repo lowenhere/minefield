@@ -1,0 +1,158 @@
+module mojo_top (
+    input clk,              // 50MHz clock
+    input rst_n,            // reset button (active low)
+    output led [8],         // 8 user controllable LEDs
+    input cclk,             // configuration clock, AVR ready when high
+    output spi_miso,        // AVR SPI MISO
+    input spi_ss,           // AVR SPI Slave Select
+    input spi_mosi,         // AVR SPI MOSI
+    input spi_sck,          // AVR SPI Clock
+    output spi_channel [4], // AVR general purpose pins (used by default to select ADC channel)
+    input avr_tx,           // AVR TX (FPGA RX)
+    output avr_rx,          // AVR RX (FPGA TX)
+    input avr_rx_busy,      // AVR RX buffer full
+    output io_led [3][8],   // LEDs on IO Shield
+    output io_seg [8],      // 7-segment LEDs on IO Shield
+    output io_sel [4],      // Digit select on IO Shield
+    input io_button [5],    // 5 buttons on IO Shield - 0:top 1:center 2:bottom 3:left 4:right
+    input io_dip [3][8],     // DIP switches on IO Shield
+    
+    output matrix_col[4],
+    output matrix_row_sel[2],
+    output matrix_rgb_sel[2]
+    ) {
+  
+  sig rst;                  // reset signal
+  sig alu_out;
+  
+  .clk(clk) {
+    // The reset conditioner is used to synchronize the reset signal to the FPGA
+    // clock. This ensures the entire FPGA comes out of reset at the same time.
+    reset_conditioner reset_cond;
+    input_handler_module input_handler_module;
+    .rst(rst){
+      dff player_pos[4][4]; 
+      dff end_pos[4][4];
+      dff mine_pos[4][4];
+      fsm state = {INIT, PLAYING, GAME_WIN, GAME_LOST, TEST};
+      
+      display_module display_module;
+      move_player_module move_player_module;
+      
+    }
+  }
+  
+  alu_sel_module alu_sel_module;
+  check_game_over_module check_game_over_module;
+  
+  alu_16_bit alu;
+  
+  always {
+    reset_cond.in = ~rst_n; // input raw inverted reset signal
+    rst = reset_cond.out;   // conditioned reset   
+    led = 8h00;             // turn LEDs off
+    spi_miso = bz;          // not using SPI
+    spi_channel = bzzzz;    // not using flags
+    avr_rx = bz;            // not using serial port
+    io_led = 3x{{8h00}};    // turn LEDs off
+    io_seg = 8hff;          // turn segments off
+    io_sel = 4hf;           // select no digits
+    
+    // INPUTS
+    input_handler_module.controller_buttons = 8b00000000;
+    input_handler_module.controller_buttons[3:0] = c{io_button[3], io_button[2], io_button[4], io_button[0]}; 
+    
+    // DISPLAY
+    display_module.game_over = 0;
+    display_module.win_loss = 0;
+    
+    display_module.player_pos = player_pos.q;
+    display_module.end_pos = end_pos.q;
+        
+    matrix_col = display_module.matrix_col;
+    matrix_row_sel = display_module.matrix_row_sel;
+    matrix_rgb_sel = display_module.matrix_rgb_sel; 
+    
+    // MOVE_PLAYER_MODULE
+    move_player_module.player_pos = 4x{{4b0000}};
+    move_player_module.move_direction = 0;
+    move_player_module.move_player = 0;
+    move_player_module.alu_out = 0;
+    
+    // CHECK_GAME_OVER_MODULE
+    check_game_over_module.player_pos = 4x{{4b0000}};
+    check_game_over_module.end_pos = 4x{{4b0000}};
+    check_game_over_module.mine_pos = 4x{{4b0000}};
+    
+    // ALU 
+    alu.a = 0;
+    alu.b = 0;
+    alu.alufn = 0;
+    
+    // ALU_SEL
+    alu_sel_module.move_player_sel = move_player_module.move_player_sel;
+    
+    // DATAPATH
+    case(alu_sel_module.alu_sel){
+      2b01:
+        alu.a = move_player_module.alu_a;
+        alu.b = move_player_module.alu_b;
+        alu.alufn = move_player_module.alufn;
+        move_player_module.alu_out = alu.o;
+        
+      2b11: 
+        alu.a = 0;
+        alu.b = 0;
+        alu.alufn = 0;        
+    }
+    
+    
+    case(state.q){
+      state.INIT:
+        player_pos.d  =  {4b0000, 4b0000, 4b0000, 4b0001};
+        end_pos.d     =  {4b1000, 4b0000, 4b0000, 4b0000};
+        mine_pos.d    =  {4b0000, 4b0110, 4b0110, 4b0000};
+        
+        state.d = state.PLAYING;
+        
+      state.PLAYING:
+        io_led[1:0] = { c{player_pos.q[3], player_pos.q[2]}, c{player_pos.q[1], player_pos.q[0]}  };
+        
+        // Connect move_player_module and position dffs
+        move_player_module.player_pos = player_pos.q;
+        player_pos.d = move_player_module.new_player_pos;
+        
+        // Connect check_game_over_module and position dffs
+        check_game_over_module.player_pos = player_pos.q;
+        check_game_over_module.end_pos = end_pos.q;
+        check_game_over_module.mine_pos = mine_pos.q;
+        
+        if (input_handler_module.move){
+          move_player_module.move_player = 1;
+          move_player_module.move_direction = input_handler_module.direction;
+          }
+        
+        if (check_game_over_module.game_over && check_game_over_module.win_loss){
+          state.d = state.GAME_WIN;
+          }
+        else if (check_game_over_module.game_over && !check_game_over_module.win_loss){
+          state.d = state.GAME_LOST;
+          }
+      
+      state.GAME_WIN:
+        display_module.game_over = 1;
+        display_module.win_loss = 1;
+      
+      state.GAME_LOST:
+        display_module.game_over = 1;
+        display_module.win_loss = 0;
+        
+      state.TEST:
+        display_module.game_over = 1;
+        display_module.win_loss = 1;
+      
+    }
+     
+    
+  }
+}

@@ -1,0 +1,13 @@
+module alu_sel_module (
+    input move_player_sel,
+    output alu_sel[2]
+  ) {
+  
+  always {
+    alu_sel = 2b11;
+    
+    if (move_player_sel)
+      alu_sel= 2b01;
+    
+  }
+}
