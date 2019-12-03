@@ -7,10 +7,13 @@
     <src>display_module.luc</src>
     <src>alu_16_bit.luc</src>
     <src>check_game_over_module.luc</src>
+    <src>detect_mine_module.luc</src>
     <src>alu_arithmetic.luc</src>
     <src>alu_boolean.luc</src>
     <src>move_player_module.luc</src>
+    <src>sound_module.luc</src>
     <src top="true">mojo_top.luc</src>
+    <src>score_calculator_module.luc</src>
     <src>alu_compare.luc</src>
     <ucf>game_io.ucf</ucf>
     <ucf lib="true">io_shield.ucf</ucf>

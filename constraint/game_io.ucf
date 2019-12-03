@@ -8,3 +8,5 @@ NET "matrix_row_sel<1>"  LOC = P32 | IOSTANDARD = LVTTL;
 
 NET "matrix_rgb_sel<0>"  LOC = P50 | IOSTANDARD = LVTTL;
 NET "matrix_rgb_sel<1>"  LOC = P40 | IOSTANDARD = LVTTL;
+
+NET "sound_output"  LOC = P30 | IOSTANDARD = LVTTL;

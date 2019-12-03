@@ -1,0 +1,150 @@
+module detect_mine_module (
+    input clk,  // clock
+    input rst,  // reset
+    
+    input player_pos[4][4],
+    input mine_pos[4][4],
+    input scan_direction[2], //0:top 1:right 2:down 3:left
+    
+    input detect_mine,
+    output detect_mine_sel,
+    
+    output mine_near,
+    output mine_far,
+    
+    output alu_a[16],
+    output alu_b[16],
+    output alufn[6],
+    input alu_out[16]
+  ) {
+  
+  .clk(clk){
+    edge_detector sound_timer_ed;
+    counter sound_timer(#SIZE(1), #DIV(26));
+    .rst(rst){
+      fsm state = {INIT, SCAN_NEAR, SCAN_FAR, MINE_NEAR, MINE_FAR, END};
+      dff scan_direction_dff[2];
+      }
+    }
+  
+  sig sound_timer_rst;
+  sig mine_pos_flat[16];
+  sig player_pos_flat[16];
+  
+  always {
+    mine_near = 0;
+    mine_far = 0;
+    sound_timer_rst = 0;
+    
+    alu_a = 0;
+    alu_b = 0;
+    alufn = 0;
+    detect_mine_sel = 0;
+    
+    sound_timer.rst = sound_timer_rst;
+    sound_timer_ed.in = sound_timer.value;
+    
+    mine_pos_flat = c{mine_pos[3], mine_pos[2], mine_pos[1], mine_pos[0]};
+    player_pos_flat = c{player_pos[3], player_pos[2], player_pos[1], player_pos[0]};
+    
+    case (state.q){
+      state.INIT:
+        if (detect_mine)
+          {
+          scan_direction_dff.d = scan_direction;
+          state.d = state.SCAN_NEAR;
+          }
+          
+      
+      state.SCAN_NEAR:
+        detect_mine_sel = 1;
+        alu_a = c{player_pos[3], player_pos[2], player_pos[1], player_pos[0]};
+        case (scan_direction_dff.q){
+          2b00: //UP
+            alu_b = 16b0000000000000100;
+            alufn = 6b100000;
+            
+          2b01: //RIGHT
+            if (!player_pos_flat[12] && !player_pos_flat[8] && 
+                !player_pos_flat[4] && !player_pos_flat[0] )
+              {
+                alu_b = 16b0000000000000001;
+                alufn = 6b100001;
+              }
+            
+          2b10: //DOWN
+            alu_b = 16b0000000000000100;
+            alufn = 6b100001;
+            
+          2b11: //LEFT
+            if (!player_pos_flat[15] && !player_pos_flat[11] && 
+                !player_pos_flat[4] && !player_pos_flat[3] )
+              {
+                alu_b = 16b0000000000000001;
+                alufn = 6b100000;
+              }
+          }
+          
+          if ( (alu_out & mine_pos_flat) != 16b0 ) {
+            state.d = state.MINE_NEAR;
+            sound_timer_rst = 1;
+          }
+          else {
+            state.d = state.SCAN_FAR;
+          }
+        
+      state.SCAN_FAR:
+        detect_mine_sel = 1;
+        alu_a = c{player_pos[3], player_pos[2], player_pos[1], player_pos[0]};
+        case (scan_direction_dff.q){
+          2b00: //UP
+            alu_b = 16b0000000000001000;
+            alufn = 6b100000;
+            
+          2b01: //RIGHT
+            if (!player_pos_flat[13] && !player_pos_flat[9] && 
+                !player_pos_flat[5] && !player_pos_flat[1] )
+              {
+                alu_b = 16b0000000000000010;
+                alufn = 6b100001;
+              }
+            
+          2b10: //DOWN
+            alu_b = 16b0000000000001000;
+            alufn = 6b100001;
+            
+          2b11: //LEFT
+            if (!player_pos_flat[14] && !player_pos_flat[10] && 
+                !player_pos_flat[6] && !player_pos_flat[2] )
+              {
+                alu_b = 16b0000000000000010;
+                alufn = 6b100000;
+              }
+          }
+          
+          if ( (alu_out & mine_pos_flat) != 16b0 ) {
+            state.d = state.MINE_FAR;
+            sound_timer_rst = 1;
+          }
+          else {
+            state.d = state.END;
+          }
+      
+      state.MINE_NEAR:
+        mine_near = 1;
+        if (!detect_mine){
+          state.d = state.END;
+          }
+        
+      state.MINE_FAR:
+        mine_far = 1;
+        if (!detect_mine){
+          state.d = state.END;
+          }
+      
+      state.END:
+        state.d = state.INIT;
+      }
+    
+  }
+}

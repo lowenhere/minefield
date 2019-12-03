@@ -1,5 +1,7 @@
 module alu_sel_module (
     input move_player_sel,
+    input detect_mine_sel,
+    input calculate_score_sel,
     output alu_sel[2]
   ) {
   
@@ -7,7 +9,10 @@ module alu_sel_module (
     alu_sel = 2b11;
     
     if (move_player_sel)
-      alu_sel= 2b01;
-    
+      alu_sel= 2b00;
+    else if (detect_mine_sel)
+      alu_sel = 2b01;
+    else if (calculate_score_sel)
+      alu_sel = 2b10;
   }
 }

@@ -17,6 +17,7 @@ module mojo_top (
     input io_button [5],    // 5 buttons on IO Shield - 0:top 1:center 2:bottom 3:left 4:right
     input io_dip [3][8],     // DIP switches on IO Shield
     
+    output sound_output,
     output matrix_col[4],
     output matrix_row_sel[2],
     output matrix_rgb_sel[2]
@@ -29,7 +30,7 @@ module mojo_top (
     // The reset conditioner is used to synchronize the reset signal to the FPGA
     // clock. This ensures the entire FPGA comes out of reset at the same time.
     reset_conditioner reset_cond;
-    input_handler_module input_handler_module;
+    
     .rst(rst){
       dff player_pos[4][4]; 
       dff end_pos[4][4];
@@ -38,8 +39,13 @@ module mojo_top (
       
       display_module display_module;
       move_player_module move_player_module;
-      
+      detect_mine_module detect_mine_module;
+      sound_module sound_module;
+      score_calculator_module score_calculator_module;
     }
+    
+    input_handler_module input_handler_module;
+    
   }
   
   alu_sel_module alu_sel_module;
@@ -73,12 +79,30 @@ module mojo_top (
     matrix_row_sel = display_module.matrix_row_sel;
     matrix_rgb_sel = display_module.matrix_rgb_sel; 
     
+    // SOUND_MODULE
+    sound_module.mine_close = detect_mine_module.mine_near;
+    sound_module.mine_far = detect_mine_module.mine_far;
+    sound_output = sound_module.sound_output;
+        
     // MOVE_PLAYER_MODULE
     move_player_module.player_pos = 4x{{4b0000}};
     move_player_module.move_direction = 0;
     move_player_module.move_player = 0;
     move_player_module.alu_out = 0;
     
+    // DETECT_MINE_MODULE
+    detect_mine_module.player_pos = 4x{{4b0000}};
+    detect_mine_module.mine_pos = 4x{{4b0000}};
+    detect_mine_module.scan_direction = 0;
+    detect_mine_module.detect_mine = 0;
+    detect_mine_module.alu_out = 0;
+    
+    // SCORE_CALCULATOR_MODULE
+    score_calculator_module.alu_out = 0;
+    score_calculator_module.player_step = move_player_module.step;
+    score_calculator_module.calculate_score = 0;
+    score_calculator_module.start_game = 0;
+        
     // CHECK_GAME_OVER_MODULE
     check_game_over_module.player_pos = 4x{{4b0000}};
     check_game_over_module.end_pos = 4x{{4b0000}};
@@ -91,14 +115,28 @@ module mojo_top (
     
     // ALU_SEL
     alu_sel_module.move_player_sel = move_player_module.move_player_sel;
+    alu_sel_module.detect_mine_sel = detect_mine_module.detect_mine_sel;
+    alu_sel_module.calculate_score_sel = score_calculator_module.calculate_score_sel;
     
     // DATAPATH
     case(alu_sel_module.alu_sel){
-      2b01:
+      2b00:
         alu.a = move_player_module.alu_a;
         alu.b = move_player_module.alu_b;
         alu.alufn = move_player_module.alufn;
         move_player_module.alu_out = alu.o;
+      
+      2b01:
+        alu.a = detect_mine_module.alu_a;
+        alu.b = detect_mine_module.alu_b;
+        alu.alufn = detect_mine_module.alufn;
+        detect_mine_module.alu_out = alu.o;
+      
+      2b10:
+        alu.a = score_calculator_module.alu_a;
+        alu.b = score_calculator_module.alu_b;
+        alu.alufn = score_calculator_module.alufn;
+        score_calculator_module.alu_out = alu.o;
         
       2b11: 
         alu.a = 0;
@@ -109,18 +147,21 @@ module mojo_top (
     
     case(state.q){
       state.INIT:
-        player_pos.d  =  {4b0000, 4b0000, 4b0000, 4b0001};
+        player_pos.d  =  {4b0000, 4b0000, 4b0010, 4b0000};
         end_pos.d     =  {4b1000, 4b0000, 4b0000, 4b0000};
-        mine_pos.d    =  {4b0000, 4b0110, 4b0110, 4b0000};
+        mine_pos.d    =  {4b0010, 4b0000, 4b0000, 4b0010};
         
         state.d = state.PLAYING;
         
       state.PLAYING:
-        io_led[1:0] = { c{player_pos.q[3], player_pos.q[2]}, c{player_pos.q[1], player_pos.q[0]}  };
-        
+        io_led[1] = score_calculator_module.timer;
         // Connect move_player_module and position dffs
         move_player_module.player_pos = player_pos.q;
         player_pos.d = move_player_module.new_player_pos;
+        
+        // Connect detect_mine_module and position dffs
+        detect_mine_module.player_pos = player_pos.q;
+        detect_mine_module.mine_pos = mine_pos.q;
         
         // Connect check_game_over_module and position dffs
         check_game_over_module.player_pos = player_pos.q;
@@ -128,8 +169,14 @@ module mojo_top (
         check_game_over_module.mine_pos = mine_pos.q;
         
         if (input_handler_module.move){
+          score_calculator_module.start_game = 1;
           move_player_module.move_player = 1;
           move_player_module.move_direction = input_handler_module.direction;
+          }
+        else if (input_handler_module.scan){
+          score_calculator_module.start_game = 1;
+          detect_mine_module.detect_mine = 1;
+          detect_mine_module.scan_direction = input_handler_module.direction;
           }
         
         if (check_game_over_module.game_over && check_game_over_module.win_loss){
@@ -138,18 +185,20 @@ module mojo_top (
         else if (check_game_over_module.game_over && !check_game_over_module.win_loss){
           state.d = state.GAME_LOST;
           }
-      
+        
+        
       state.GAME_WIN:
+        score_calculator_module.calculate_score = 1;
+        io_led[0] = score_calculator_module.score[9:2];
         display_module.game_over = 1;
         display_module.win_loss = 1;
-      
+        
       state.GAME_LOST:
         display_module.game_over = 1;
         display_module.win_loss = 0;
         
       state.TEST:
         display_module.game_over = 1;
-        display_module.win_loss = 1;
       
     }
      

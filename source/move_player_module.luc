@@ -8,6 +8,7 @@ module move_player_module (
     
     input move_player,
     output done,
+    output step,
     
     output alu_a[16],
     output alu_b[16],
@@ -33,6 +34,7 @@ module move_player_module (
     slow_clk_ed.in = slow_clk.value;
     
     new_player_pos = player_pos;
+    step = 0;
     done = 0;
     alu_a = 16b0;
     alu_b = 16b0;
@@ -90,8 +92,10 @@ module move_player_module (
         state.d = state.DONE;
                 
       state.DONE:
-        if (player_pos_intermediate.q != 16b0 )
+        if (player_pos_intermediate.q != 16b0 ){
           new_player_pos = { player_pos_intermediate.q[15:12], player_pos_intermediate.q[11:8], player_pos_intermediate.q[7:4], player_pos_intermediate.q[3:0] };
+          step = 1;
+        }
         else
           new_player_pos = player_pos;
         

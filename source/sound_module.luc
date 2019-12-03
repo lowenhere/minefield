@@ -1,0 +1,104 @@
+module sound_module (
+    input clk,  // clock
+    input rst,  // reset
+
+    input mine_far,
+    input mine_close,
+
+    output sound_output
+
+  ) {
+  
+    .clk(clk) {
+      .rst(rst){
+
+    
+    // Here we can set the size of our dff, this will decide the frequency of output
+    // at 50Mhz and 16 registers, 762Hz
+     dff counter_slow[15]; 
+    dff counter_fast[15];
+    
+    // We have to create a counter for the .25s intervals and 0.05s intervals
+    dff interval_slow[25];
+    dff interval_fast[25];
+ 
+    
+    // Another counter to tell speaker whether on or off
+    dff switch_slow[1];
+    dff switch_fast[1];
+    
+    fsm state = { QUIET, SLOW, FAST };
+      
+    }
+  }
+
+  always {
+    // Initialize sound_output, by default we make it off
+    sound_output = 1b0;
+
+ 
+    case(state.q){
+    
+      state.QUIET:
+        sound_output= 0;
+
+        
+        if(mine_close){
+          state.d = state.FAST;
+        }
+        
+        if(mine_far){
+          state.d = state.SLOW;
+        }
+        
+        
+      state.SLOW:
+      
+        counter_slow.d = counter_slow.q + 1;
+        interval_slow.d = interval_slow.q + 1;
+        if ( interval_slow.q  < 22500000 && switch_slow.q == 1 ){
+            sound_output= counter_slow.q[14];
+         }
+        else if ( interval_slow.q < 22500000 && switch_slow.q == 0){
+            sound_output= 0;
+        }
+        else{
+            switch_slow.d = switch_slow.q + 1; // will result into an overflow back to 0
+            interval_slow.d = 0;
+        }
+        
+        if(mine_close){
+          state.d = state.FAST;
+        }
+        
+        if(mine_close == 0){
+          state.d = state.QUIET;
+        }
+        
+        
+      state.FAST:
+        counter_fast.d = counter_fast.q + 1;
+        interval_fast.d = interval_fast.q + 1;
+        if ( interval_fast.q  < 5000000 && switch_fast.q == 1 ){
+            sound_output= counter_fast.q[14];
+        }
+        else if ( interval_fast.q < 5000000 && switch_fast.q == 0){
+            sound_output= 0;
+        }
+        else{
+            switch_fast.d = switch_fast.q + 1; // will result into an overflow back to 0
+            interval_fast.d = 0;
+        }
+        
+        if(mine_far){
+          state.d = state.SLOW;
+        }
+        
+        if(mine_close == 0){
+          state.d = state.QUIET;
+        }     
+        
+            
+    }  
+  }
+}    

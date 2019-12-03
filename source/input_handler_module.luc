@@ -23,11 +23,6 @@ module input_handler_module (
     edge_detector move_r_ed(#RISE(1), #FALL(0));
     edge_detector move_d_ed(#RISE(1), #FALL(0));
     edge_detector move_l_ed(#RISE(1), #FALL(0));
-    
-    edge_detector scan_u_ed(#RISE(1), #FALL(0));
-    edge_detector scan_r_ed(#RISE(1), #FALL(0));
-    edge_detector scan_d_ed(#RISE(1), #FALL(0));
-    edge_detector scan_l_ed(#RISE(1), #FALL(0)); 
   }
   
   
@@ -46,12 +41,7 @@ module input_handler_module (
     move_r_ed.in = move_r_bc.out;
     move_d_ed.in = move_d_bc.out;
     move_l_ed.in = move_l_bc.out;
-    
-    scan_u_ed.in = scan_u_bc.out;
-    scan_r_ed.in = scan_r_bc.out;
-    scan_d_ed.in = scan_d_bc.out;
-    scan_l_ed.in = scan_l_bc.out;
-    
+      
     action = 1;
     
     if (move_u_ed.out){
@@ -75,22 +65,22 @@ module input_handler_module (
       scan = 0;
     }
     
-    else if (scan_u_ed.out){
+    else if (scan_u_bc.out){
       direction = 0;
       move = 0;
       scan = 1;
     }
-    else if (scan_r_ed.out){
+    else if (scan_r_bc.out){
       direction = 1;
       move = 0;
       scan = 1;
     }
-    else if (scan_d_ed.out){
+    else if (scan_d_bc.out){
       direction = 2;
       move = 0;
       scan = 1;
     }
-    else if (scan_l_ed.out){
+    else if (scan_l_bc.out){
       direction = 3;
       move = 0;
       scan = 1;
