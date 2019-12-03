@@ -24,15 +24,11 @@ module move_player_module (
       fsm state = { INIT, SHIFT, DONE };
       dff player_pos_intermediate[16];
       dff move_direction_dff[2];
-      counter slow_clk(#SIZE(1), #DIV(5));
     }
-    edge_detector slow_clk_ed(#RISE(1), #FALL(0));
   }
   
   
-  always {
-    slow_clk_ed.in = slow_clk.value;
-    
+  always {    
     new_player_pos = player_pos;
     step = 0;
     done = 0;

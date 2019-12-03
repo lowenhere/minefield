@@ -7,7 +7,7 @@ module score_calculator_module (
     input calculate_score,
     
     output timer[8],
-    output score[10],
+    output score[12],
     
     output alu_a[16],
     output alu_b[16],
@@ -17,15 +17,20 @@ module score_calculator_module (
     
   ) {
   
-  sig timer_rst;
+  sig score_reset;
   
   .clk(clk){
     edge_detector player_step_ed(#RISE(1), #FALL(0));
     
-    counter game_timer (#SIZE(13), #DIV(27)); // increments once every ~2.6s, increments up to 8192
+    .rst(rst) {
+      fsm state = {START_GAME, INIT_CALC, CALC_0, CALC_1, CALC_2, CALC_3};
+      }
+     
+    .rst(score_reset){
+      dff score_dff[12];
+      counter game_timer (#SIZE(13), #DIV(26)); // increments once every ~1.3s, increments up to 8192
+      }
     
-    dff score_dff[10];
-    fsm state = {START_GAME, INIT_CALC, CALC_0, CALC_1, CALC_2, CALC_3}; 
     }
     
   counter step_counter(#SIZE(10), #DIV(0));
@@ -36,26 +41,23 @@ module score_calculator_module (
     alufn = 6b0;
     score = score_dff.q;
     calculate_score_sel = 0;
-    timer_rst = rst;
     timer = game_timer.value[7:0];
+    score_reset = rst;
     
     player_step_ed.in = player_step;
-    
-    step_counter.rst = timer_rst;
     step_counter.clk = player_step_ed.out;
+    step_counter.rst = score_reset;
     
-    game_timer.rst = timer_rst;
-        
     case(state.q) {
       state.START_GAME:
         if (start_game){
-          timer_rst = 1;
+          score_reset = 1;
           state.d = state.INIT_CALC;
           }
       
       state.INIT_CALC:
         if (calculate_score){
-          score_dff.d = 10b0;
+          score_dff.d = 12b0;
           state.d = state.CALC_0;
           }
         
@@ -64,31 +66,31 @@ module score_calculator_module (
         alu_a = c{6b0, step_counter.value};
         alu_b = 16b0000000000000010;
         alufn = 6b000001;
-        score_dff.d = alu_out[9:0];
+        score_dff.d = alu_out[11:0];
         state.d = state.CALC_1;
       
       state.CALC_1:
         calculate_score_sel = 1;
-        alu_a = c{6b0, score_dff.q};
-        alu_b = 16b0000000000000001;
+        alu_a = c{4b0, score_dff.q};
+        alu_b = 16b0000000000001000;
         alufn = 6b000010;
-        score_dff.d = alu_out[9:0];
+        score_dff.d = alu_out[11:0];
         state.d = state.CALC_2;
       
       state.CALC_2:
         calculate_score_sel = 1;
-        alu_a = c{6b0, score_dff.q};
+        alu_a = c{4b0, score_dff.q};
         alu_b = c{6b0, game_timer.value};
         alufn = 6b000010;
-        score_dff.d = alu_out[9:0];
+        score_dff.d = alu_out[11:0];
         state.d = state.CALC_3;
       
       state.CALC_3:
         calculate_score_sel = 1;
         alu_a = 16b000010000000000;
-        alu_b = c{6b0, score_dff.q};
+        alu_b = c{4b0, score_dff.q};
         alufn = 6b000001;
-        score_dff.d = alu_out[9:0];
+        score_dff.d = alu_out[11:0];
         state.d = state.START_GAME;
       }
     
