@@ -10,3 +10,12 @@ NET "matrix_rgb_sel<0>"  LOC = P50 | IOSTANDARD = LVTTL;
 NET "matrix_rgb_sel<1>"  LOC = P40 | IOSTANDARD = LVTTL;
 
 NET "sound_output"  LOC = P30 | IOSTANDARD = LVTTL;
+
+NET "controller<0>" LOC = P134 | IOSTANDARD = LVTTL | PULLDOWN;
+NET "controller<1>" LOC = P132 | IOSTANDARD = LVTTL | PULLDOWN;
+NET "controller<2>" LOC = P127 | IOSTANDARD = LVTTL | PULLDOWN;
+NET "controller<3>" LOC = P124 | IOSTANDARD = LVTTL | PULLDOWN;
+NET "controller<4>" LOC = P133 | IOSTANDARD = LVTTL | PULLDOWN;
+NET "controller<5>" LOC = P131 | IOSTANDARD = LVTTL | PULLDOWN;
+NET "controller<6>" LOC = P126 | IOSTANDARD = LVTTL | PULLDOWN;
+NET "controller<7>" LOC = P123 | IOSTANDARD = LVTTL | PULLDOWN;

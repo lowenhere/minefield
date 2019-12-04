@@ -10,6 +10,7 @@
     <src top="true">mojo_top.luc</src>
     <src>input_handler_module.luc</src>
     <src>alu_shift.luc</src>
+    <src>game_map_lut.luc</src>
     <src>display_module.luc</src>
     <src>alu_16_bit.luc</src>
     <src>check_game_over_module.luc</src>

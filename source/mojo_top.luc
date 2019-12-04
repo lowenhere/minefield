@@ -17,6 +17,7 @@ module mojo_top (
     input io_button [5],    // 5 buttons on IO Shield - 0:top 1:center 2:bottom 3:left 4:right
     input io_dip [3][8],     // DIP switches on IO Shield
     
+    input controller[8],
     output sound_output,
     output matrix_col[4],
     output matrix_row_sel[2],
@@ -24,6 +25,7 @@ module mojo_top (
     ) {
   
   sig rst;                  // reset signal
+  sig change_stage;
   
   .clk(clk) {
     // The reset conditioner is used to synchronize the reset signal to the FPGA
@@ -34,7 +36,7 @@ module mojo_top (
       dff player_pos[4][4]; 
       dff end_pos[4][4];
       dff mine_pos[4][4];
-      fsm state = {INIT, PLAYING, GAME_WIN, GAME_LOST, TEST};
+      fsm state = {STAGE_SELECT, PLAYING, GAME_WIN, GAME_LOST};
       
       multi_seven_seg seg_display;
       
@@ -48,6 +50,9 @@ module mojo_top (
     input_handler_module input_handler_module;
     score_calculator_module score_calculator_module;
   }
+  
+  counter stage_select (#SIZE(4), #DIV(0)); 
+  game_map_lut game_map_lut;
   
   alu_sel_module alu_sel_module;
   check_game_over_module check_game_over_module;
@@ -67,11 +72,20 @@ module mojo_top (
     io_sel = 4hf;           // select no digits
     seg_display.values = {4b0,4b0,4b0,4b0};
     decimal_score.value = 0;
+    change_stage = 0;
+    
     
     // INPUTS
     input_handler_module.controller_buttons = 8b00000000;
-    input_handler_module.controller_buttons[7:4] = c{io_button[3], io_button[2], io_button[4], io_button[0]}; 
+    input_handler_module.controller_buttons = controller; 
     
+    // STAGE SELECT
+    stage_select.rst = rst;
+    stage_select.clk = change_stage;
+    
+    // GAME_MAP_LUT
+    game_map_lut.map_index = 0;
+            
     // DISPLAY
     display_module.game_over = 0;
     display_module.win_loss = 0;
@@ -151,12 +165,27 @@ module mojo_top (
     
     
     case(state.q){
-      state.INIT:
-        player_pos.d  =  {4b0000, 4b0000, 4b0010, 4b0000};
-        end_pos.d     =  {4b1000, 4b0000, 4b0000, 4b0000};
-        mine_pos.d    =  {4b0010, 4b0000, 4b0000, 4b0010};
+      state.STAGE_SELECT:
+        player_pos.d = 4x{{4b0}};
+        end_pos.d = 4x{{4b0}};
+        mine_pos.d = 4x{{4b0}};
         
-        state.d = state.PLAYING;
+        decimal_score.value = c{ 12b0, stage_select.value };
+        seg_display.values = decimal_score.digits;
+        io_seg = ~seg_display.seg;
+        io_sel = ~seg_display.sel;        
+        
+        if (input_handler_module.select){
+          game_map_lut.map_index = stage_select.value;
+          player_pos.d = game_map_lut.player_pos;
+          end_pos.d = game_map_lut.end_pos;
+          mine_pos.d = game_map_lut.mine_pos;
+          
+          state.d = state.PLAYING;
+          }
+        else if (input_handler_module.move){
+          stage_select.clk = 1;
+          }
 
                 
       state.PLAYING:
@@ -176,7 +205,7 @@ module mojo_top (
         
         
         if (input_handler_module.restart_game){
-          state.d = state.INIT;
+          state.d = state.STAGE_SELECT;
           score_calculator_module.rst = 1;
           }
         else if (input_handler_module.move){
@@ -208,14 +237,20 @@ module mojo_top (
         
         display_module.game_over = 1;
         display_module.win_loss = 1;
-
-                
+        
+        if (input_handler_module.restart_game){
+          state.d = state.STAGE_SELECT;
+          score_calculator_module.rst = 1;
+          }
+     
       state.GAME_LOST:
         display_module.game_over = 1;
         display_module.win_loss = 0;
         
-      state.TEST:
-        display_module.game_over = 1;
+        if (input_handler_module.restart_game){
+          state.d = state.STAGE_SELECT;
+          score_calculator_module.rst = 1;
+          }
       
     }
      

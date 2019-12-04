@@ -1,0 +1,38 @@
+module game_map_lut (
+  input map_index[4],
+  output player_pos[4][4],
+  output mine_pos[4][4],
+  output end_pos[4][4]
+  ) {
+
+  always {
+    case(map_index){
+      0:
+        player_pos  =  {4b0000, 4b0000, 4b0000, 4b0001};
+        end_pos     =  {4b1000, 4b0000, 4b0000, 4b0000};
+        mine_pos    =  {4b0000, 4b0010, 4b0100, 4b0000};
+      
+      1:
+        player_pos  =  {4b0000, 4b0000, 4b0000, 4b0001};
+        end_pos     =  {4b1000, 4b0000, 4b0000, 4b0000};
+        mine_pos    =  {4b0000, 4b0110, 4b0110, 4b0000};
+        
+      2:
+        player_pos  =  {4b0000, 4b0000, 4b0010, 4b0000};
+        end_pos     =  {4b0010, 4b0000, 4b0000, 4b0000};
+        mine_pos    =  {4b1001, 4b1001, 4b1000, 4b1001};
+        
+      3:
+        player_pos  =  {4b0001, 4b0000, 4b0000, 4b0000};
+        end_pos     =  {4b1000, 4b0000, 4b0000, 4b0001};
+        mine_pos    =  {4b0000, 4b0110, 4b0110, 4b0000};
+        
+      default:
+        player_pos  =  {4b0000, 4b0000, 4b0000, 4b0001};
+        end_pos     =  {4b1000, 4b0000, 4b0000, 4b0000};
+        mine_pos    =  {4b0000, 4b0000, 4b0000, 4b0000};
+      
+      
+      }
+  }
+}
