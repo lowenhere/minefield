@@ -36,7 +36,7 @@ module mojo_top (
       dff player_pos[4][4]; 
       dff end_pos[4][4];
       dff mine_pos[4][4];
-      fsm state = {STAGE_SELECT, PLAYING, GAME_WIN, GAME_LOST};
+      fsm state = {STAGE_SELECT, INIT, PLAYING, GAME_WIN, GAME_LOST};
       
       multi_seven_seg seg_display;
       
@@ -173,19 +173,23 @@ module mojo_top (
         decimal_score.value = c{ 12b0, stage_select.value };
         seg_display.values = decimal_score.digits;
         io_seg = ~seg_display.seg;
-        io_sel = ~seg_display.sel;        
+        io_sel = ~seg_display.sel;  
+        io_led[2][3:0] = stage_select.value;      
         
         if (input_handler_module.select){
-          game_map_lut.map_index = stage_select.value;
-          player_pos.d = game_map_lut.player_pos;
-          end_pos.d = game_map_lut.end_pos;
-          mine_pos.d = game_map_lut.mine_pos;
-          
-          state.d = state.PLAYING;
+          state.d = state.INIT;
           }
-        else if (input_handler_module.move){
+        else if (input_handler_module.move && (input_handler_module.direction == 1)){
           stage_select.clk = 1;
           }
+        
+      state.INIT:
+        game_map_lut.map_index = stage_select.value;
+        player_pos.d = game_map_lut.player_pos;
+        end_pos.d = game_map_lut.end_pos;
+        mine_pos.d = game_map_lut.mine_pos;
+        
+        state.d = state.PLAYING;
 
                 
       state.PLAYING:

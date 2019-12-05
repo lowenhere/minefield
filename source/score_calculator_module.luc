@@ -65,7 +65,7 @@ module score_calculator_module (
         calculate_score_sel = 1;
         alu_a = c{6b0, step_counter.value};
         alu_b = 16b0000000000000010;
-        alufn = 6b000001;
+        alufn = 6b000000;
         score_dff.d = alu_out[11:0];
         state.d = state.CALC_1;
       
@@ -89,7 +89,7 @@ module score_calculator_module (
         calculate_score_sel = 1;
         alu_a = 16b000010000000000;
         alu_b = c{4b0, score_dff.q};
-        alufn = 6b000001;
+        alufn = 6b000000;
         score_dff.d = alu_out[11:0];
         state.d = state.START_GAME;
       }

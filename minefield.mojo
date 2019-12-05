@@ -18,8 +18,8 @@
     <src>alu_boolean.luc</src>
     <src>score_calculator_module.luc</src>
     <src>alu_compare.luc</src>
-    <ucf lib="true">io_shield.ucf</ucf>
     <ucf>game_io.ucf</ucf>
+    <ucf lib="true">io_shield.ucf</ucf>
     <ucf lib="true">mojo.ucf</ucf>
     <component>decoder.luc</component>
     <component>bin_to_dec.luc</component>

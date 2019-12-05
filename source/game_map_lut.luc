@@ -9,7 +9,7 @@ module game_map_lut (
     case(map_index){
       0:
         player_pos  =  {4b0000, 4b0000, 4b0000, 4b0001};
-        end_pos     =  {4b1000, 4b0000, 4b0000, 4b0000};
+        end_pos     =  {4b0001, 4b0000, 4b0000, 4b0000};
         mine_pos    =  {4b0000, 4b0010, 4b0100, 4b0000};
       
       1:
