@@ -23,7 +23,7 @@ module game_map_lut (
         mine_pos    =  {4b1001, 4b1001, 4b1000, 4b1001};
         
       3:
-        player_pos  =  {4b0000, 4b0000, 4b0010, 4b0000};
+        player_pos  =  {4b0000, 4b0001, 4b0000, 4b0000};
         end_pos     =  {4b1000, 4b0000, 4b0000, 4b0001};
         mine_pos    =  {4b0000, 4b0110, 4b0110, 4b0000};
       4:

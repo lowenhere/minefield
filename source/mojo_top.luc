@@ -176,7 +176,7 @@ module mojo_top (
         io_sel = ~seg_display.sel;  
         io_led[2][3:0] = stage_select.value;      
         
-        if (input_handler_module.select){
+        if (input_handler_module.select ||io_button[2]){
           state.d = state.INIT;
           }
         else if (input_handler_module.move && (input_handler_module.direction == 1)){
